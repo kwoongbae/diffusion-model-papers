@@ -56,6 +56,12 @@ ARXIV_NS = {"atom": "http://www.w3.org/2005/Atom"}
 # JSON braces below survive — title/abstract are appended separately.
 ANALYZE_INSTRUCTIONS = """다음 arXiv 논문의 제목과 초록을 분석해서 아래 JSON 형식으로만 답하세요. 설명 문장 없이 JSON만 출력하세요.
 
+독자 눈높이 (매우 중요):
+- 독자는 디퓨전 모델이 "노이즈를 점점 제거하며 데이터를 생성한다" 정도만 아는 비전공자에 가깝습니다.
+- 전문 용어(예: classifier-free guidance, latent space, ODE solver, score function 등)는 그대로 쓰지 말고, 쉬운 우리말로 풀어 쓰거나 괄호로 한 줄 부연하세요. 예: "잠재 공간(이미지를 압축한 작은 표현 공간)".
+- 수식이나 약어를 나열하지 말고, "무엇을 왜 했는지"를 직관적으로 설명하세요. 비유를 써도 좋습니다.
+- 단, 핵심 정보는 빠뜨리지 말고 정확하게 전달하세요. 쉽게 쓰되 틀리지 않게.
+
 판단 기준:
 - is_generative_diffusion: 이 논문이 DDPM, score-based, latent diffusion 등 데이터(이미지·비디오·오디오·3D 등)를 생성하기 위한 "확산 생성모델(generative diffusion model)" 계열과 직접 관련되면 true. 정보 확산(information diffusion), 확산 MRI, 분자 확산 등 생성모델과 무관한 'diffusion'이면 false.
 - type: 논문 종류를 한국어 키워드 하나로. 예: "새로운 방법론 제안", "리뷰/서베이", "벤치마크·데이터셋", "이론 분석", "응용 연구", "효율화·가속".
