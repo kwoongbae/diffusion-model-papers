@@ -33,10 +33,19 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          if [ -n "$(git status --porcelain README.md)" ]; then
-            git add README.md
-            git commit -m "Weekly paper digest: $(date -u +%Y-%m-%d)"
-            git push
-          else
+          if [ -z "$(git status --porcelain README.md)" ]; then
             echo "변경 사항이 없습니다."
+            exit 0
           fi
+          git add README.md
+          git commit -m "Weekly paper digest: $(date -u +%Y-%m-%d)"
+          # 원격이 그사이 진행됐을 수 있으니 rebase 후 재시도 (push 경합 방지)
+          for i in 1 2 3; do
+            if git push; then
+              exit 0
+            fi
+            echo "push 실패, 원격 변경사항 rebase 후 재시도 ($i)..."
+            git pull --rebase origin main
+          done
+          echo "여러 번 시도 후에도 push 실패"
+          exit 1
