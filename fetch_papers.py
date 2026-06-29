@@ -24,6 +24,7 @@ rewrite the `analyze()` function and swap the API-key env var.
 import datetime
 import json
 import os
+import re
 import sys
 import time
 import urllib.error
@@ -168,13 +169,25 @@ def format_block(items, today):
     return "\n".join(lines)
 
 
-def update_readme(block):
+def update_readme(block, today):
+    """Insert the new block right after the marker (newest first).
+
+    If a block for the same date already exists (e.g. a manual re-run or a
+    delayed scheduled run), it is replaced rather than duplicated.
+    """
     with open(README, "r", encoding="utf-8") as f:
         content = f.read()
     if MARKER not in content:
         raise SystemExit(f"README.md에 '{MARKER}' 마커가 없습니다.")
-    head, tail = content.split(MARKER, 1)
-    new = f"{head}{MARKER}\n\n{block}\n{tail.lstrip()}"
+    head, log = content.split(MARKER, 1)
+
+    # Split the existing log into date blocks and drop today's, if present.
+    blocks = [b for b in re.split(r"(?=^## )", log.strip(), flags=re.M) if b.strip()]
+    heading = f"## {today} 주간 요약"
+    blocks = [b for b in blocks if not b.lstrip().startswith(heading)]
+
+    new_log = "\n\n".join([block.strip()] + [b.strip() for b in blocks])
+    new = f"{head}{MARKER}\n\n{new_log}\n"
     with open(README, "w", encoding="utf-8") as f:
         f.write(new)
 
@@ -210,7 +223,7 @@ def main():
 
     today = datetime.date.today().isoformat()
     block = format_block(items, today)
-    update_readme(block)
+    update_readme(block, today)
     print(f"{len(items)}편의 논문을 README.md에 추가했습니다.")
 
 
