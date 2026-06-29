@@ -26,6 +26,7 @@ import json
 import os
 import sys
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
@@ -73,8 +74,12 @@ JSON 형식:
 {"is_generative_diffusion": true, "type": "새로운 방법론 제안", "purpose": "...", "methods": ["...", "..."], "conclusions": ["...", "..."]}"""
 
 
-def fetch_arxiv(max_results):
-    """Return a list of the most recently submitted diffusion-related papers."""
+def fetch_arxiv(max_results, retries=4):
+    """Return a list of the most recently submitted diffusion-related papers.
+
+    Retries with backoff on transient HTTP errors (arXiv rate-limits bursts
+    of requests with 429 / 5xx).
+    """
     params = {
         "search_query": QUERY,
         "sortBy": "submittedDate",
@@ -84,8 +89,21 @@ def fetch_arxiv(max_results):
     }
     url = "http://export.arxiv.org/api/query?" + urllib.parse.urlencode(params)
     req = urllib.request.Request(url, headers={"User-Agent": "diffusion-paper-log/1.0"})
-    with urllib.request.urlopen(req, timeout=60) as resp:
-        raw = resp.read()
+
+    raw = None
+    for attempt in range(retries):
+        try:
+            with urllib.request.urlopen(req, timeout=60) as resp:
+                raw = resp.read()
+            break
+        except urllib.error.HTTPError as e:
+            transient = e.code == 429 or 500 <= e.code < 600
+            if transient and attempt < retries - 1:
+                wait = 10 * (attempt + 1)
+                print(f"arXiv HTTP {e.code}, {wait}초 후 재시도...", file=sys.stderr)
+                time.sleep(wait)
+                continue
+            raise
 
     root = ET.fromstring(raw)
     papers = []
